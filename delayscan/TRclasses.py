@@ -1,13 +1,14 @@
 import numpy as np
 from os.path import getmtime
-import re
 from pathlib import Path
 
+from .conversions import (
+    tof_to_eke,
+    pos_to_time,
+    delaystrings_to_float
+)
 
-### Constants
-MASS_ELECTRON = 0.51099895e6 # eV
-LIGHTSPEED = 299792458e-9 #m/ns
-LIGHTSPEED_MPS = 299_792_458 #m/ns
+from .calibrations import instrument_function
 
 
 class DelayScan:
@@ -16,7 +17,7 @@ class DelayScan:
         self.resultsFolder = kwargs['resultsFolder']
         self.date = kwargs['date']
         self.fileIndex = kwargs['fileIndex']
-        self.calParams = kwargs['calParams']
+        self.calParams = kwargs['calParams'] 
         self.IFparams = kwargs['IFparams']
         self.pumpWavelength = kwargs['pumpWavelength']
         self.probeWavelength = kwargs['probeWavelength']
@@ -28,7 +29,7 @@ class DelayScan:
         self.SPafter = kwargs['SPafter'] 
         self.streamingPotentialCorrection = sum(self.SPbefore+self.SPafter)/2
         
-        # Path to where TR files are
+        # Path to where TR files are.
         self.dataPath = self.resultsFolder+rf"{self.date}\{self.date}{self.fileIndex}\{self.date}{self.fileIndex}/"
 
     def importData(self):
@@ -41,67 +42,55 @@ class DelayScan:
         # Get delay strings
         self.delay_strings = np.array(self.file_names_split)[:,0]
         # Convert to float
-        self.allDelays = self.delaystrings2float(self.delay_strings)
+        self.allDelays = delaystrings_to_float(self.delay_strings)
         # As there are for spectra for delay get list of unique delays
         self.delays = self.allDelays[0::4]
         # Convert to time
-        self.delayTimes = self.pos2time(self.delays,self.timeZero)
+        self.delayTimes = pos_to_time(self.delays,self.timeZero)
 
         #Load data
         self.TOFspectra = []
         for fileName in self.fileNames:
             self.TOFspectra.append(np.loadtxt(self.dataPath+fileName).T)
         self.TOFspectra = np.array(self.TOFspectra)
-        
+
+        # Make copy so we can keep the original data and process it differently if needed
         self.spectra = np.copy(self.TOFspectra)
 
+        #Checks to avoid transformations being applied twice
         self.jacobianApplied = False
         self.eKEconversionApplied = False
         self.instrumentFunctionApplied = False
         self.streamingPotentialCorrected = False
         self.integrationTimeNormalised = False
         
-    def delaystring2float(self,delay_string):
-        """Convert delay string in file name to float"""
-        #Split by letter. Should return only numbers as they filenames are alphanumeric
-        num = re.split('[a-zA-Z]', delay_string)
-        num = float(num[0]) + float(num[1])*1e-4
-        return num
+
     
-    def delaystrings2float(self,delay_strings):
-        """Convert list of delay strings in file names to floats"""
-        return np.vectorize(self.delaystring2float)(delay_strings)
-          
-    
-    def applyJacobian(self):
-        """Applies jacobian to all spectra"""
+    def applyJacobian(self,scaling_factor = 1e-7):
+        """Applies Jacobian transformation to all spectra.
+        Scaling factor is an arbitrary number that gives spectra "nice" y values"""
         if not self.jacobianApplied:            
             for i in range(len(self.spectra)):
                 # Scales intensities by Jacobian
                 self.spectra[i][1] *= ((self.TOFspectra[i][0]-self.calParams[1])**3)
                 #Apply aribtrary scaling factor
-                self.spectra[i][1]/=1e7
+                self.spectra[i][1] *= scaling_factor
             self.jacobianApplied = True
 
-    def timeToEnergyConversion (self,t,s,t0,E0):
-        """TOF to eKE"""
-        return (0.5* MASS_ELECTRON/(LIGHTSPEED**2)) * (s/(t-t0))**2 - E0
 
-    def convert2eKE(self):
+    def convert_to_eKE(self):
         """Applies TOF to eKE conversion to all spectra"""
         if not self.eKEconversionApplied:
             for i in range(len(self.spectra)):
-                self.spectra[i][0] = self.timeToEnergyConversion(self.spectra[i][0],*self.calParams)
+                self.spectra[i][0] = tof_to_eke(self.spectra[i][0],*self.calParams)
             self.eKEconversionApplied = True
 
-    def instrumentFunction(self,x,N0,l):
-        return N0*np.exp((-x)/l)+1
 
     def applyInstrumentFunction(self):
         """Applies instrument function to all spectra"""
         if not self.instrumentFunctionApplied:
             for i in range(len(self.spectra)):
-                self.spectra[i][1] /= self.instrumentFunction(self.spectra[i][0],*self.IFparams)
+                self.spectra[i][1] /= instrument_function(self.spectra[i][0],*self.IFparams)
             self.instrumentFunctionApplied = True
 
     def correctStreamingPotential(self):
@@ -118,10 +107,8 @@ class DelayScan:
                 self.spectra[i][1] /= self.integrationTime
             self.integrationTimeNormalised = True
 
-    def pos2time(self,delays, pos0):
-        return 2*(delays-pos0)/(LIGHTSPEED_MPS*1e3*1e-12)
-    
-    def subtract(self,ppInd,pumpInd,probeInd,nothingInd):
+
+    def subtract_background(self,ppInd,pumpInd,probeInd,nothingInd):
         """Extracts pp, pump, probe and nothing spectra
         and subtracts pump, probe and nothing from pp"""
         
