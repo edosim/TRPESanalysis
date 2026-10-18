@@ -137,7 +137,111 @@ def reduceBins(data, rebins):
 
 
 class DelayScanSet(list):
-    """This is just a list but I may add stuff to it in the future."""
+    """This is just a list with the date(s) but I may add stuff to it in the future."""
     def __init__(self, *args):
         super().__init__(args)
+
+
+    @property
+    def date(self):
+        date = {scan.date for scan in self}
+        for scan in self:
+            date.add(scan.date)
+
+        return date
+
+
+    def energies_match(self):
+        energies_reference = self[0].subtracted_cut[0,0,:]
+        for scan in self[1:]:
+            energies_current = scan.subtracted_cut[0,0,:]
+            if not np.allclose(energies_current, energies_reference):
+                return False
+        return True
+
+    def delays_match(self):
+        #Check delays are the same
+        delays_reference = self[0].delayTimes
+        for scan in self[1:]:
+            delays_current = scan.delayTimes
+            if not np.allclose(delays_current, delays_reference):
+                return False
+        return True
+
+    def shapes_match(self):
+        shape_reference = self[0].subtracted_cut.shape
+        for scan in self[1:]:
+            if not (scan.subtracted_cut.shape == shape_reference):
+                return False
+        return True             
+
+
+    def add_scans(self):
+        #Check that the eKEs of all scans are the same
+        if not self.energies_match():
+            raise ValueError("The energy axes of single scans do not match")
+        #Check that the delays of all scans are the same
+        if not self.delays_match():
+            raise ValueError("The delay axes of single scans do not match")
+        #Check that they all have the same shape (useless)
+        if not self.shapes_match():
+            raise ValueError("The scans do not all have the same shape")
+
+       # Create empty array with same shape as the individual subtracted data
+        self.subtracted = np.zeros_like(self[0].subtracted_cut[:,1])
+        #Sum over scans in scanSet scaled by the number of scans (i.e. average)
+        for scan in self:
+            self.subtracted += scan.subtracted_cut[:,1]/len(self)
+
+        #Normalise by highest intensity
+        self.subtracted /= np.max(self.subtracted)
+        #Save rebinned_energies
+        self.energies = scan.subtracted_cut[0,0]
+        #Save delays
+        self.delays = scan.delayTimes
+
+
+
+    def rebin_subtracted_spectra(self,rebins):
+        """"""
+        subtracted_rebinned = []
+        for spectrum in self.subtracted:
+            rebinned_spectrum = reduceBins(self.energies,spectrum,rebins)[1]
+            subtracted_rebinned.append(rebinned_spectrum)
+        
+        self.subtracted_rebinned = np.array(subtracted_rebinned)
+
+        #Normalise by highest intensity
+        self.subtracted_rebinned /= np.max(self.subtracted_rebinned)
+        #Save rebinned_energies
+        self.energies_rebinned = reduceBins(self.energies,spectrum,rebins)[0]
+        #Save rebins
+        self.rebins = rebins
+
+
+    def save_subtracted(self,filename = r"data/out/ExperimentalData.csv",**savetxtkwargs):
+        #Not rebinned
+        saveData = np.vstack((self.delays,self.subtracted.T))
+        saveEnergies = np.hstack(([0,],self.energies))
+        # added leading 0 for delay label columns
+        saveData = np.vstack((saveEnergies,saveData.T))
+
+        savetxtkwargs.setdefault("delimiter", ",")
+        savetxtkwargs.setdefault("fmt", "%.10e")
+        np.savetxt(filename,saveData,
+                    **savetxtkwargs)
+
+    def save_rebinned(self,filename = r"data/out/RebinnedExperimentalData.csv",**savetxtkwargs):
+        #Rebinned
+        saveData = np.vstack((self.delays,self.subtracted_rebinned.T))
+        saveEnergies = np.hstack(([0,],self.energies_rebinned))
+        saveData = np.vstack((saveEnergies,saveData.T))
+
+        savetxtkwargs.setdefault("delimiter", ",")
+        savetxtkwargs.setdefault("fmt", "%.10e")
+        np.savetxt(filename,saveData,
+                    **savetxtkwargs)
+
+
+
 
