@@ -5,7 +5,6 @@ import numpy as np
 ### Constants
 MASS_ELECTRON = 0.51099895e6 # eV
 LIGHTSPEED = 299_792_458e-9 #m/ns and mm/ps
-LIGHTSPEED_MPS = 299_792_458 #m/s
 
 def tof_to_eke (t,s,t0,E0):
     """Convert data from TOF to eKE"""
