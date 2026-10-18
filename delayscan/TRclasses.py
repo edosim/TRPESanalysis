@@ -122,6 +122,19 @@ class DelayScan:
 
 def reduceBins(data, rebins):
     """Returns mean of x and y in data every `bins` points.
+
+    def trim_energies(self, low_eKE_cutoff = None, high_eKE_cutoff = None):
+        """Removes data points below low eKE cutoff and above high eKE cutoff"""
+        if low_eKE_cutoff == None: 
+            low_eKE_cutoff = self.IFcutoff+self.streamingPotentialCorrection
+        if high_eKE_cutoff == None:
+            high_eKE_cutoff = 5.0 # 5 eV is the standard limit we use in the lab
+
+        mask = np.logical_and(self.subtracted[0,0,:]>=low_eKE_cutoff,
+                              self.subtracted[0,0,:]<=high_eKE_cutoff)
+        self.subtracted_cut = self.subtracted[:,:,mask]
+
+
     If bins is not a factor of data.shape[1] values at the end of data are discarded"""
     x,y=data
     if len(y) % rebins != 0:
