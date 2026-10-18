@@ -182,3 +182,8 @@ cython_debug/
 
 # VS code
 .vscode/
+
+# raw data
+data/raw
+# output data
+data/out
