@@ -120,8 +120,6 @@ class DelayScan:
         self.subtracted = np.copy(self.pps)
         self.subtracted[:,1]=self.subtracted[:,1]-self.pumps[:,1]-self.probes[:,1]-self.nothings[:,1]
 
-def reduceBins(data, rebins):
-    """Returns mean of x and y in data every `bins` points.
 
     def trim_energies(self, low_eKE_cutoff = None, high_eKE_cutoff = None):
         """Removes data points below low eKE cutoff and above high eKE cutoff"""
@@ -135,8 +133,24 @@ def reduceBins(data, rebins):
         self.subtracted_cut = self.subtracted[:,:,mask]
 
 
+def reduceBins(*args):
+    """
+    Call as:
+        reduceBins(x, y, rebins)
+        reduceBins(data, rebins)   # data is shape (2, N), rows are x and y
+    Returns mean of x and y in data every `bins` points.
     If bins is not a factor of data.shape[1] values at the end of data are discarded"""
-    x,y=data
+
+    if len(args) == 3:
+        x, y, rebins = args
+    elif len(args) == 2:
+        data, rebins = args
+        x, y = data
+    else:
+        raise TypeError(
+            f"reduceBins expects (x, y, rebins) or (data, rebins), got {len(args)} arguments"
+        )
+
     if len(y) % rebins != 0:
         #Must trim end of x,y
         x=x[:-(len(x)%rebins)]
