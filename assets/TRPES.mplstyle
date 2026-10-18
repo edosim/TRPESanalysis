@@ -1,0 +1,14 @@
+figure.dpi: 300
+font.family : Arial
+font.size : 9
+legend.fontsize : 7
+# medium : equal to font.size
+axes.labelsize : medium 
+figure.labelsize : medium
+legend.handletextpad : 0.3
+legend.labelspacing : 0.3
+lines.linewidth : 1
+lines.markersize : 6
+legend.frameon : False
+# ACSwid, ACSwid*0.75
+figure.figsize : 3.33, 2.4975
