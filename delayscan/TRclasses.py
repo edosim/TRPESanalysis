@@ -19,6 +19,7 @@ class DelayScan:
         self.fileIndex = kwargs['fileIndex']
         self.calParams = kwargs['calParams'] 
         self.IFparams = kwargs['IFparams']
+        self.IFcutoff = kwargs['IFcutoff']
         self.pumpWavelength = kwargs['pumpWavelength']
         self.probeWavelength = kwargs['probeWavelength']
         self.pumpPulseEnergy = kwargs['pumpPulseEnergy']
