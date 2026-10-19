@@ -187,3 +187,6 @@ cython_debug/
 data/raw
 # output data
 data/out
+
+#retrieval bases
+bases/basisSets_pCE_2026.hdf5
