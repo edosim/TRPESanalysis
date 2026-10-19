@@ -7,20 +7,20 @@ from delayscan.TRclasses import reduceBins
 
 # Instrument function parameters
 # N0 * exp((-x)/l) + 1
-IFparams = np.array([-6.90359945,  0.02964122])
+IFparams = np.array([-6.90359945, 0.02964122])
 # Low eKE cutoff at eKE = 0.126
 IFcutoff = 0.126
 
 # TOF to eKE calibration
 # Flight tube length (m), time offset (ns), energy offset (eV)
-calParams = np.array([  0.62209127, 48.29925437,  1.10221363])
+calParams = np.array([0.62209127, 48.29925437, 1.10221363])
 
 #Streaming potentials
 SP_250618c = np.array([0.037811958986494684,  0.12997911802896056 ])
-SP_250618d = np.array([-0.004002254614469857,  0.20421880748289375 ])
+SP_250618d = np.array([-0.004002254614469857, 0.20421880748289375 ])
 
 #Path to raw data
-resultsPath = r"data/"
+resultsPath = r"data/raw/"
 
 #Info of rawdata
 # resultsFolder,date, fn, pump wl, pulseEnergy pump,probe wl, pulseEnergy probe, integration time, approx time 0, SP before, SP after 
@@ -28,13 +28,13 @@ fileInfo_250618b = [
     (resultsPath,"180625","dt", 350.0, 5, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
     (resultsPath,"180625","dv", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
     (resultsPath,"180625","dx", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # # (resultsPath,"180625","dz", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # (resultsPath,"180625","eb", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # (resultsPath,"180625","ec", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # (resultsPath,"180625","eg", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # (resultsPath,"180625","ei", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # (resultsPath,"180625","ek", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
-    # (resultsPath,"180625","em", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    # (resultsPath,"180625","dz", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    (resultsPath,"180625","eb", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    (resultsPath,"180625","ec", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    (resultsPath,"180625","eg", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    (resultsPath,"180625","ei", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    (resultsPath,"180625","ek", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
+    (resultsPath,"180625","em", 350.0, 4, 266.67, 7.4, 10, 71.7346, SP_250618c, SP_250618d),
 ]
 
 fileInfos = [fileInfo_250618b,]
@@ -88,10 +88,11 @@ scan = scanSet[1]
 counts = [np.sum(scan.spectra[i::4,1]) for i in range(4)]
 
 pp_indices = np.argsort(counts)[::-1]
-#Here the pump-only and probe-only signals could be the other way around
+# Here the pump-only and probe-only signals could be the other way around
 # but there is no way of telling the difference
 # except for the shape of each spectrum
-# plus we are usually not so interested in these/
+# As we are usually not so interested in pump-only
+# and probe-only, it doesn't matter how we label them.
 
 #Get subtracted spectra
 for scan in scanSet:
@@ -115,7 +116,21 @@ print("Data processed")
 
 # SAVE DATA
 print("\nSaving data")
-scanSet.save_subtracted()
-scanSet.save_rebinned()
-print("Data saved")
 
+savepath = r"data/out/"
+# Save unbinned data
+save_arr = tr.create_save_arr(scanSet.energies,
+                              scanSet.delays,
+                              scanSet.subtracted)
+
+np.savetxt(savepath+"ExperimentalData.csv",save_arr, delimiter = ',',fmt = "%.10e")
+
+
+# Save binned data
+save_arr = tr.create_save_arr(scanSet.energies_rebinned,
+                              scanSet.delays,
+                              scanSet.subtracted_rebinned)
+
+np.savetxt(savepath+"RebinnedExperimentalData.csv",save_arr, delimiter = ',',fmt = "%.10e")
+
+print("Data saved")

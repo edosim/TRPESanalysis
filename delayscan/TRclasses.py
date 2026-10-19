@@ -247,29 +247,22 @@ class DelayScanSet(list):
         self.rebins = rebins
 
 
-    def save_subtracted(self,filename = r"data/out/ExperimentalData.csv",**savetxtkwargs):
-        #Not rebinned
-        saveData = np.vstack((self.delays,self.subtracted.T))
-        saveEnergies = np.hstack(([0,],self.energies))
-        # added leading 0 for delay label columns
-        saveData = np.vstack((saveEnergies,saveData.T))
-
-        savetxtkwargs.setdefault("delimiter", ",")
-        savetxtkwargs.setdefault("fmt", "%.10e")
-        np.savetxt(filename,saveData,
-                    **savetxtkwargs)
-
-    def save_rebinned(self,filename = r"data/out/RebinnedExperimentalData.csv",**savetxtkwargs):
-        #Rebinned
-        saveData = np.vstack((self.delays,self.subtracted_rebinned.T))
-        saveEnergies = np.hstack(([0,],self.energies_rebinned))
-        saveData = np.vstack((saveEnergies,saveData.T))
-
-        savetxtkwargs.setdefault("delimiter", ",")
-        savetxtkwargs.setdefault("fmt", "%.10e")
-        np.savetxt(filename,saveData,
-                    **savetxtkwargs)
 
 
 
+def create_save_arr(x, y, Z):
+    """Outputs a 2D array with the x axis along the top row,
+    the y axis down the first column, and Z in
+    the body. The top-left corner is a placeholder zero."""
+    x = np.asarray(x)
+    y = np.asarray(y)
+    Z = np.asarray(Z)
 
+    # Add y to the left
+    save_arr = np.vstack((y, Z.T))
+    # Add leading 0 to x
+    x = np.hstack(([0,],x))
+    # Add x to the top
+    save_arr = np.vstack((x,save_arr.T))
+    
+    return save_arr
