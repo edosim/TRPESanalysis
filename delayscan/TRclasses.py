@@ -2,6 +2,8 @@ import numpy as np
 from os.path import getmtime
 from pathlib import Path
 
+import scipy
+
 from .conversions import (
     tof_to_eke,
     pos_to_time,
@@ -266,3 +268,10 @@ def create_save_arr(x, y, Z):
     save_arr = np.vstack((x,save_arr.T))
     
     return save_arr
+
+
+### Analysis functions
+def monoexponential_witht0(x,A1,tau1,t0,sigma):
+    
+    return (A1 * np.exp((-1/tau1)*(x-t0))*np.exp((sigma**2)/(2*(tau1**2))) *
+           (1 + (scipy.special.erf((x-t0-((sigma**2)/tau1))/(np.sqrt(2.0)*sigma)))))
