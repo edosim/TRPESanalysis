@@ -44,7 +44,7 @@ class DelayScan:
         self.delay_strings = np.array(self.file_names_split)[:,0]
         # Convert to float
         self.allDelays = delaystrings_to_float(self.delay_strings)
-        # As there are for spectra for delay get list of unique delays
+        # As there are four spectra for delay get list of unique delays
         self.delays = self.allDelays[0::4]
         # Convert to time
         self.delayTimes = pos_to_time(self.delays,self.timeZero)
@@ -95,7 +95,7 @@ class DelayScan:
             self.instrumentFunctionApplied = True
 
     def correctStreamingPotential(self):
-        """Coorects for SP and vacuum level"""
+        """Corrects for streaming and vacuum level offset"""
         if not self.streamingPotentialCorrected:
             for i in range(len(self.spectra)):
                 self.spectra[i][0] += self.streamingPotentialCorrection
@@ -211,7 +211,7 @@ class DelayScanSet(list):
         #Check that the delays of all scans are the same
         if not self.delays_match():
             raise ValueError("The delay axes of single scans do not match")
-        #Check that they all have the same shape (useless)
+        #Check that they all have the same shape
         if not self.shapes_match():
             raise ValueError("The scans do not all have the same shape")
 
