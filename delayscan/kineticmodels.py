@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import erf
 
 
-def _monoexp(t,k,sigma):
+def monoexp(t,k,sigma):
     """Monoexponential helper function"""
 
     return 0.5*np.exp(-k*t + 0.5*(k**2)*(sigma**2)) * (1 + erf((t-k*sigma**2)/(sigma*np.sqrt(2))))
@@ -32,12 +32,12 @@ class EAS_model():
     def B_model(t,A2,tau1,tau2,sigma):
         """Concentration of [B] as a function of time. Convoluted with Gaussian"""
         k1, k2 = 1/tau1, 1/tau2
-        return A2*(k1/(k2-k1))*(_monoexp(t,k1,sigma) - _monoexp(t,k2,sigma))
+        return A2*(k1/(k2-k1))*(monoexp(t,k1,sigma) - monoexp(t,k2,sigma))
 
     @staticmethod
     def A_model(t,A1,tau1,sigma):
         k1 = 1/tau1
-        return A1*_monoexp(t,k1,sigma)
+        return A1*monoexp(t,k1,sigma)
 
     def kinetic_model(self,x,A1,A2,tau1,tau2,
                           t0 = None,sigma = None):
@@ -50,11 +50,15 @@ class EAS_model():
 
 
 
-    def global_fit(self,flat_delays, tau1, tau2, *amplitudes):
+    def global_fit(self,flat_delays, tau1, tau2, *amplitudes,
+                   energy_length = None,delays_length = None):
+        if energy_length == None:
+            energy_length = self.energy_length
+        if delays_length == None:
+            delays_length = self.delays_length
 
-
-        delays = flat_delays.reshape(self.energy_length, self.delays_length)
-        amps = np.array(amplitudes).reshape(self.energy_length, 2)  
+        delays = flat_delays.reshape(energy_length, delays_length)
+        amps = np.array(amplitudes).reshape(energy_length, 2)  
 
         return self.kinetic_model(
             delays,
@@ -93,14 +97,19 @@ class DAS_model():
 
         k1, k2 = 1/tau1, 1/tau2
 
-        return (A1 * _monoexp(x-t0,k1,sigma) +
-                A2 * _monoexp(x-t0,k2,sigma))
+        return (A1 * monoexp(x-t0,k1,sigma) +
+                A2 * monoexp(x-t0,k2,sigma))
 
 
-    def global_fit(self, flat_delays, tau1, tau2, *amplitudes):
+    def global_fit(self, flat_delays, tau1, tau2, *amplitudes,
+                   energy_length = None,delays_length = None):
+        if energy_length == None:
+            energy_length = self.energy_length
+        if delays_length == None:
+            delays_length = self.delays_length
 
-        delays = flat_delays.reshape(self.energy_length, self.delays_length)
-        amps = np.array(amplitudes).reshape(self.energy_length, 2)  
+        delays = flat_delays.reshape(energy_length, delays_length)
+        amps = np.array(amplitudes).reshape(energy_length, 2)  
 
         return self.kinetic_model(
             delays,
