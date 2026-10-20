@@ -117,3 +117,77 @@ class DAS_model():
             amps[:, 1][:, None],
             tau1, tau2,
         ).ravel()
+
+
+######################
+
+class RetrieveModel():
+    """
+    Fits two distorted gaussians to the data following the EAS model (A -> B -> C)
+    """
+    def __init__(self,
+                 t0,
+                 sigma,
+                 delays,
+                 energy_length,
+                 basis,
+                 min_eKE):
+        #time-zero
+        self.t0 = t0
+        # sigma = cross-correlation / 2.335
+        self.sigma = sigma
+        # delays
+        self.delays = delays
+        #Number of delays
+        self.delays_length = len(delays)
+        # Number of energy values
+        self.energy_length = energy_length
+
+        #basis set
+        self.basis = basis
+        #min_eKE for cutting off result
+        self.min_eKE = min_eKE
+
+
+    def retrieval_function(self,x,amp1,ctr1,fwhm1,amp2,ctr2,fwhm2):
+        # fwhm to wid
+        wid1,wid2 = fwhm1*0.60056,fwhm2*0.60056
+
+        y1 =  amp1 * np.exp(-((x - ctr1)/wid1)**2)
+        y2 =  amp2 * np.exp(-((x - ctr2)/wid2)**2)
+        
+        y1 = self.basis.T @ y1
+        y2 = self.basis.T @ y2 
+        return (y1 + y2)[x>=self.min_eKE]
+
+
+    @staticmethod
+    def B_model(t,A2,tau1,tau2,sigma):
+        """Concentration of [B] as a function of time. Convoluted with Gaussian"""
+        k1, k2 = 1/tau1, 1/tau2
+        return A2*(k1/(k2-k1))*(monoexp(t,k1,sigma) - monoexp(t,k2,sigma))
+
+    @staticmethod
+    def A_model(t,A1,tau1,sigma):
+        k1 = 1/tau1
+        return A1*monoexp(t,k1,sigma)
+
+
+    
+    def global_fit(self,
+                   flat_energies,amp1,ctr1,fwhm1,amp2,ctr2,fwhm2, tau1, tau2,
+                   energy_length = None,delays_length = None):
+
+        if energy_length == None:
+            energy_length = self.energy_length
+        if delays_length == None:
+            delays_length = self.delays_length
+
+        energies = flat_energies.reshape(delays_length,energy_length).T
+
+        # scale amps by trace
+        a1 = self.A_model(self.delays,amp1,tau1,self.sigma)
+        a2 = self.B_model(self.delays,amp2,tau1,tau2,self.sigma)
+
+        return self.retrieval_function(energies,a1,ctr1,fwhm1,a2,ctr2,fwhm2).ravel()
+
