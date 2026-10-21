@@ -16,7 +16,7 @@ def multiple_gaussians(x, *params):
         Points at which to evaluate the function
     *params : float
         A series of three values per Gaussian in the order 
-        ``amp_1, ctr_1, fwhm_1, amp_2, ctr_2, fwhm_2...``, where
+        ``amp_1, ctr_1, fwhm_1, amp_2, ctr_2, fwhm_2, ...``, where
         amp_i is the height, ctr_i is the centre and
         fwhm_i is the full width at half maximum.
 
@@ -36,38 +36,118 @@ def multiple_gaussians(x, *params):
 
 
 class JetFitFunc():
-    def __init__(self, num_surf, num_bulk, surf_bas, bulk_bas, min_eKE):
-        self.num_surf = num_surf
-        self.num_bulk = num_bulk
-        self.num_peaks = self.num_surf + self.num_bulk
-        self.surf_bas = surf_bas
-        self.bulk_bas = bulk_bas
-        self.min_eKE = min_eKE
+    """Ultraviolet liquid-microjet photoelectron spectra are distorted by rovibrational
+    inelastic scattering of photoelectrons inside the liquid. Monte-Carlo electron 
+    scattering simulations can be employed to obtain a matrix mapping initial electron
+    kinetic energy (eKE) to final eKE, which allows true (undistorted) photoelectron
+    spectra to be retrieved from distorted experimental ones.
+    
+    This class stores the mapping matrix and provides the function ``f`` which performs
+    the mapping and is suitable for ``scipy.optimize.curve_fit``.
+    The true spectrum is modelled as a sum of Gaussians each of which is tranformed 
+    using one of two basis sets, depending on where electrons originate:
+
+    - ``'B'`` (bulk): electrons are generated uniformly inside the liquid jet (e.g. the solvent).
+    These use ``bulk_basis``.
+    - ``'S'`` (surface): electrons are generated a depth-dependent distribution (e.g. surfactants).
+    These use ``surf_basis``.
+    
+    Parameters
+    ----------
+    gauss_types : sequence of {'B', 'S'}
+        One entry per Gaussian, giving the basis set used for each set of three
+        parameters (``amp``, ``ctr``, ``fwhm``) passed to ``f``. ``'S'`` selects
+        ``surf_basis`` and ``'B'`` selects ``bulk_basis``.
+    surf_basis : numpy.ndarray
+        (N, N) array containing the transformation between initial and final eKE for
+        surface-enhanced species.
+    bulk_basis : numpy.ndarray
+        (N, N) array containing the transformation between initial and final eKE for
+        uniformly distributed species.
+    min_eKE : float
+        Minimum eKE of the experimental spectrum. Usually spectra are cutoff at an eKE > 0 eV, but basis
+        sets model down to 0 eV. Therefore, the model output is truncated to ``x >= min_eKE``.
+
+    Raises
+    ------
+    ValueError
+        If ``gauss_types`` contains anything other than ``'S'`` or ``'B'``.
+
+    Notes
+    -----
+    While `f` outputs ``y`` truncated above ``min_eKE``, the eKE grid ``x`` must have 
+    N points, i.e., the same as one of the dimensions of the bases. Additionally ``x``
+    should have the same values employed in the scattering simulation
+    (usually ``np.arange(0.01,5.01,0.01)``).
+"""
+    def __init__(self, gauss_types, surf_basis, bulk_basis, min_eKE):
+        """
+        Store bases, types of Gaussian (bulk or surface) and minimum eKE.
+
+        See the class docstring for the full list of parameters.
+        """
+        # Check  gauss_types only contains 'S' and 'B'
+        invalid = [g for g in gauss_types if g not in ('S', 'B')]
+        if invalid:
+            raise ValueError(f"gauss_types should contain 'S' and 'B' only, got {invalid}.")
+        self.gauss_types = gauss_types # list of 'S' (surface) and 'B' (bulk)
+        self.surf_basis = surf_basis #basis set to use for 'S' gaussians
+        self.bulk_basis = bulk_basis #basis set to use for 'B' gaussians
+        self.min_eKE = min_eKE #minimum eKE to fit to
 
     def f(self, x, *params):
-        peaks_so_far = 0
+        """
+        Return sum of distorted Gaussians evaluated at x of the form.
+
+        Each true spectrum is a Gaussian (``G_i``)::
+
+            G_i =  amp_i * exp(-((x - ctr_i) / wid_i) ** 2)
+
+        where ``wid_i = 0.60056 * fwhm_i``. 0.60056 is ``1 / (2 * sqrt(ln 2))``. 
+
+        Each ``G_i`` is mapped to a final eKE distribution (``g_i``) using the 
+        basis set selected by ```gauss_types[i]```::
+
+            g_i = basis.T @ G_i
+        
+        The result is the sum of all ``g_i`` truncated below ``min_eKE``.
+            
+        
+        Parameters
+        ----------
+        x : numpy.ndarray
+            eKE values of length N at which to evaluate the function.
+            Must have the same dimension N of the basis sets.
+        *params : float
+            A series of three values per Gaussian in the order 
+            ``amp_1, ctr_1, fwhm_1, amp_2, ctr_2, fwhm_2, ...``, where
+            amp_i is the height, ctr_i is the centre and
+            fwhm_i is the full width at half maximum of the true Gaussian (``G_i``)
+
+        Returns
+        -------
+        numpy.ndarray
+            Sum of all distorted Gaussians at points where ``x >= min_eKE``.
+        """
+
         y = np.zeros_like(x)
  
-        for i in range(0, len(params), 3):
-            if peaks_so_far < self.num_surf:
-                basis = self.surf_bas
-            else:
-                basis = self.bulk_bas
+        for gauss_ind, param_ind in enumerate(range(0, len(params), 3)):
+            if self.gauss_types[gauss_ind] == "S":
+                basis = self.surf_basis
+            elif self.gauss_types[gauss_ind] == "B":
+                basis = self.bulk_basis
                 
-            amp = params[i]
-            ctr = params[i+1]
-            wid = params[i+2]*.60056
+            amp = params[param_ind]
+            ctr = params[param_ind+1]
+            wid = params[param_ind+2]*.60056
+
             y_tmp = amp * np.exp( -((x - ctr)/wid)**2)
-            y += np.sum(basis.T * y_tmp, axis=1)
+            y += basis.T @ y_tmp
             
-            peaks_so_far += 1
-        
-        x_above_cutoff = x[x>=self.min_eKE]
-        y_above_cutoff = y[-x_above_cutoff.shape[0]:]
+        y_above_cutoff = y[x>=self.min_eKE]
         
         return y_above_cutoff
-
-
 
 def rebinData(data,min_eKE = 0, x_bins = None,nanWarningSuppress = False):
     # Default bin edges if none selected
