@@ -9,12 +9,15 @@ def monoexp(t,k,sigma):
 
 
 class EAS_model():
-    """Model using evolution-associated spectra.
-    It employes a sequential  kinetic model A  -> B -> C, where A and B are
-    two spectroscopically measurable states and C is a final non-measurable state
-    outside the probing window.
+    """Model using evolution-associated spectra (EAS) to model time-resolved photoelectron
+    spectra. 
+    
+    This class employs the sequential kinetic model
+    A  -> B -> C, where A and B are two spectroscopically measurable states and C
+    is a final non-measurable state outside the probing window.
     The photoelectron signal can thus be described as the sum of the contribution
-    of A and B, S_A(eKE,t) + S_B(eKE,t), convoluted with the instrument response function R(t).
+    of A and B, S_A(eKE,t) + S_B(eKE,t), convoluted with the instrument response 
+    function R(t) (assumed Gaussian).
     """
     
     def __init__(self,t0,sigma,delays_length,energy_length):
