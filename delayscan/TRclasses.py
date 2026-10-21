@@ -272,9 +272,9 @@ def create_save_arr(x, y, Z):
 
 ### Analysis functions
 def monoexponential_witht0(x,A1,tau1,t0,sigma):
-    
-    return (A1/2 * np.exp((-1/tau1)*(x-t0))*np.exp((sigma**2)/(2*(tau1**2))) *
-           (1 + (scipy.special.erf((x-t0-((sigma**2)/tau1))/(np.sqrt(2.0)*sigma)))))
+    t = x - t0
+    return (A1/2 * np.exp(-1/tau1 * t + 0.5 * (sigma**2)/(tau1**2)) *
+           (1 + (scipy.special.erf((t-(sigma**2)/tau1) / (np.sqrt(2.0)*sigma)))))
 
 
 def monoexponential(x,A1,tau1,sigma):
