@@ -88,16 +88,16 @@ class DelayScan:
     delayTimes : numpy.ndarray
         ``delays`` converted to time (ps) relative to ``timeZero``.
     TOFspectra : numpy.ndarray
-        Raw spectra with shape ``(n_spectra, 2, n_points). Axis 1 holds
+        Raw spectra with shape ``(n_spectra, 2, n_TOFs). Axis 1 holds
         x values (ind 0) and y values (ind 1). 
     spectra : numpy.ndarray
         Copy of TOF spectra to which transformations and corrections
         are applied. 
     pps, pumps, probes, nothings : numpy.ndarray
-        Spectra of each type per delay, with shape ``(n_delays, 2, n_points)``.
+        Spectra of each type per delay, with shape ``(n_delays, 2, n_energies)``.
     subtracted : numpy.ndarray
         Pump-probe spectra with pump-only, probe-only and background
-        contributions subtracted, with shape ``(n_delays, 2, n_points)``.
+        contributions subtracted, with shape ``(n_delays, 2, n_energies)``.
     subtracted_cut: numpy.ndarray
         ``subtracted`` within energy limit set by ``trim_energies``
     jacobianApplied, eKEconversionApplied, instrumentFunctionApplied, \
@@ -117,7 +117,7 @@ class DelayScan:
 """
     def __init__(self, **kwargs):
         """Store metadata and create path to data. Pass parameters as
-        key arguments (see class docstring for list)
+        key arguments (see class docstring for list).
         """
         # Get all data and metadata
         self.resultsFolder = kwargs['resultsFolder']
@@ -255,7 +255,7 @@ class DelayScan:
         by plotting the data (or quantitatively by maximum counts).
         
         Sets ``pps``, ``pumps``, ``probes``, ``nothings``
-        and ``subtracted``, with shape ``(n_delays, 2, n_points)``.
+        and ``subtracted``, with shape ``(n_delays, 2, n_energies)``.
         
         Parameters
         ----------
@@ -356,22 +356,82 @@ def reduceBins(*args):
 
 
 class DelayScanSet(list):
-    """This is just a list with the date(s) but I may add stuff to it in the future."""
+    """ Set of time-resolved photoelectron spectroscopy scans from a single session.
+
+    Each scan is a ``DelayScan`` object: a series of photoelectron spectra recorded at
+    different pump-probe delays. Recording several scans under the same conditions and
+    averaging them improves signal-to-noise ratio and allows better quality analysis.
+    This class holds the individual scans, checks their compatibility and creates 
+    the averaged data (with the option to rebin it). Scans must have been recorded
+    under the same conditions (e.g. between the same two streaming potential measurements)
+    and thus have the same energy and delay axes.
+
+    The class is a ``list`` subclass so it supports its methods.
+    
+    Scans can be added before having been processed but they must be fully processed
+    up to ``DelayScan.trim_energies()`` before running ``add_scans()``
+    and ``rebin_subtracted_spectra(rebins)``.
+
+    Typical workflow
+    ----------------
+    >>> scan_set = DelayScanSet(scan1, scan2, scan3)
+    >>> scan_set.add_scans()
+    >>> scan_set.rebin_subtracted_spectra(rebins)
+
+    Parameters
+    -----------
+    *args: DelayScan
+        The DelayScan objects to include.
+
+    Attributes
+    ----------
+    subtracted : numpy.ndarray
+        Average of background-subtracted pump-probe intensites normalised to its
+        maximum, with shape ``(n_delays, n_energies)``.
+    energies : numpy.ndarray
+        eKE axis shared by all scans with length ``n_energies``
+    delays : numpy.ndarray
+        Delay times shared by all scans with length ``n_delays``
+    subtracted_rebinned : numpy.ndarray
+        ``subtracted`` after rebinning along the energy axis normalised to its 
+        maximum, with shape ``(n_delays, n_energies_rebinned)``.
+    energies_rebinned : numpy.ndarray
+        ``energies``` after rebinning, with len ``n_energies_rebinned``.
+    rebins : int
+        Number of new bins to rebin data into.
+    t0 : float
+        t0 obtained by fitting.
+    delays_t0 : numpy.ndarray
+        ``delays`` shifted by t0.    
+ 
+"""
+
+
     def __init__(self, *args):
+        """Create set from scans
+
+        Parameters
+        -----------
+        *args: DelayScan
+            The DelayScan objects to include.
+        """
         super().__init__(args)
 
 
-    @property
-    def date(self):
-        date = {scan.date for scan in self}
-        for scan in self:
-            date.add(scan.date)
-
-        return date
-
-
     def energies_match(self):
+        """Check whether all scans share the same energy axis.
+        
+        Compares the trimmed energies of ``subtracted_cut`` to the first
+        scan in the set.
+        
+        Returns
+        ----------
+        bool
+            True if all the energy axes match, False otherwise.
+        """
+        #Get trimmed energies of first scan
         energies_reference = self[0].subtracted_cut[0,0,:]
+        #Compare it to the rest
         for scan in self[1:]:
             energies_current = scan.subtracted_cut[0,0,:]
             if not np.allclose(energies_current, energies_reference):
@@ -379,7 +439,16 @@ class DelayScanSet(list):
         return True
 
     def delays_match(self):
-        #Check delays are the same
+        """Check whether all scans share the same delays.
+        
+        Compares the ``delayTimes`` of each scan to the first
+        scan in the set.
+        
+        Returns
+        ----------
+        bool
+            True if all the delays match, False otherwise.
+        """
         delays_reference = self[0].delayTimes
         for scan in self[1:]:
             delays_current = scan.delayTimes
@@ -388,6 +457,16 @@ class DelayScanSet(list):
         return True
 
     def shapes_match(self):
+        """Check whether the all scans have the same data shape.
+
+        Compares the shape of ``subtracted_cut`` of each scan to the first
+        scan in the set.
+
+        Returns
+        -------------
+        bool
+            True if all the data has the same shape, False otherwise.
+        """
         shape_reference = self[0].subtracted_cut.shape
         for scan in self[1:]:
             if not (scan.subtracted_cut.shape == shape_reference):
@@ -396,6 +475,18 @@ class DelayScanSet(list):
 
 
     def add_scans(self):
+        """ Averages the trimmed subtracted spectra of all scans.
+
+        First checks if energies, delays and data shapes are compatible. Then
+        averages the intensities in ``subtracted_cut`` and normalises the result
+        by its maximum value.
+
+        Raises
+        --------
+        ValueError
+            If energies, delays or data shapes in scans do not match.
+        
+        """
         #Check that the eKEs of all scans are the same
         if not self.energies_match():
             raise ValueError("The energy axes of single scans do not match")
@@ -422,7 +513,14 @@ class DelayScanSet(list):
 
 
     def rebin_subtracted_spectra(self,rebins):
-        """"""
+        """ Rebin the averaged spectra along the energy axis.
+
+        Each spectrum in ``subtracted`` is rebinned every ``rebins`` bins.
+        The resulting data set is normalised to its maximum.
+
+        Sets ``subtracted_rebinned``, ``energies_rebinned`` and ``rebins``.
+        
+        """
         subtracted_rebinned = []
         for spectrum in self.subtracted:
             rebinned_spectrum = reduceBins(self.energies,spectrum,rebins)[1]
@@ -437,6 +535,21 @@ class DelayScanSet(list):
         #Save rebins
         self.rebins = rebins
 
+    def set_time_zero(self,t0):
+        """Sets time zero and shifts the delay axis.
+        
+        As ``DelayScan.timeZero`` is only an initial estimate of time zero, this method
+        can be called to set a more accurate time zero and obtain the delays relative to it.
+        
+        Sets ``t0`` and ``delays_t0``
+        
+        Parameters
+        -----------
+        t0 : float
+            New time zero value (ps)
+        """
+        self.t0 = t0
+        self.delays_t0 = self.delays - t0
 
 
 
