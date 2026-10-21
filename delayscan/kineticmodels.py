@@ -41,9 +41,9 @@ class EAS_model():
 
     def kinetic_model(self,x,A1,A2,tau1,tau2,
                           t0 = None,sigma = None):
-        if t0 == None:
+        if t0 is None:
             t0 = self.t0
-        if sigma == None:
+        if sigma is None:
             sigma = self.sigma
 
         return self.A_model(x-t0,A1,tau1,sigma) + self.B_model(x-t0,A2,tau1,tau2,sigma)
@@ -52,9 +52,9 @@ class EAS_model():
 
     def global_fit(self,flat_delays, tau1, tau2, *amplitudes,
                    energy_length = None,delays_length = None):
-        if energy_length == None:
+        if energy_length is None:
             energy_length = self.energy_length
-        if delays_length == None:
+        if delays_length is None:
             delays_length = self.delays_length
 
         delays = flat_delays.reshape(energy_length, delays_length)
@@ -90,9 +90,9 @@ class DAS_model():
 
     def kinetic_model(self, x, A1, A2, tau1, tau2,
                             t0 = None, sigma = None):
-        if t0 == None:
+        if t0 is None:
             t0 = self.t0
-        if sigma == None:
+        if sigma is None:
             sigma = self.sigma
 
         k1, k2 = 1/tau1, 1/tau2
@@ -103,9 +103,9 @@ class DAS_model():
 
     def global_fit(self, flat_delays, tau1, tau2, *amplitudes,
                    energy_length = None,delays_length = None):
-        if energy_length == None:
+        if energy_length is None:
             energy_length = self.energy_length
-        if delays_length == None:
+        if delays_length is None:
             delays_length = self.delays_length
 
         delays = flat_delays.reshape(energy_length, delays_length)
@@ -178,9 +178,9 @@ class RetrieveModel():
                    flat_energies,amp1,ctr1,fwhm1,amp2,ctr2,fwhm2, tau1, tau2,
                    energy_length = None,delays_length = None):
 
-        if energy_length == None:
+        if energy_length is None:
             energy_length = self.energy_length
-        if delays_length == None:
+        if delays_length is None:
             delays_length = self.delays_length
 
         energies = flat_energies.reshape(delays_length,energy_length).T
