@@ -150,6 +150,44 @@ class JetFitFunc():
         return y_above_cutoff
 
 def rebinData(data,min_eKE = 0, x_bins = None,nanWarningSuppress = False):
+    """
+    Rebin a spectrum onto a regular eKE grid by averaging within each bin.
+
+    Each y value is assigned to the bin containing its x value, and the y values
+    in the same bin are averaged. Bins at or below ``min_eKE`` are discarded, and
+    any empty bins (which would be ``nan``) are set to 0.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        (2, N) array, where ``data[0]`` holds the x values (eKE, eV)
+        and ``data[1]`` holds the corresponding y values (intensity).
+    min_eKE : float, optional
+        Bins whose right edge is not greater than this value (eV) are removed
+        from the output. Defaults to 0.
+    x_bins : numpy.ndarray, optional
+        Monotonically increasing bin edges (eV), giving ``len(x_bins) - 1`` bins.
+        Each bin includes its left edge and excludes its right edge. Defaults to
+        ``np.arange(0.00, 5.01, 0.01)``.
+    nanWarningSuppress : bool, optional
+        If False (default), print a message giving the lowest eKE at which an
+        empty bin was found. If True, suppress the message.
+    Returns
+    -------
+    numpy.ndarray
+        (2, K) array, where ``M`` is the number of bins above ``min_eKE``.
+        The first row contains the right bin edges and the second row contains
+        the mean y value in each bin, with empty bins set to 0.
+
+    Notes
+    -----
+    - x values outside the range of ``x_bins`` are ignored.
+    - Empty bins give ``nan`` when averaged. These are expected only at high eKE
+    where the difference between consecutive values gets larger, and are set to 0.
+    - The right bins are selected because this is what is done in the Monte-Carlo
+    simulation used to model the distortion of photoelectron spectra.
+    
+    """
     # Default bin edges if none selected
     if x_bins is None:
         x_bins = np.arange(0.00,5.01,0.01)
