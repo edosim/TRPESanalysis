@@ -3,12 +3,34 @@ import numpy as np
 
 # Multiple Gaussian function for fitting to bases
 def multiple_gaussians(x, *params):
+    """
+    Return sum of Gaussians evaluated at x of the form::
+
+        y_i = amp_i * exp(-((x - ctr_i) / wid_i) ** 2)
+    
+    where ``wid_i = 0.60056 * fwhm_i``. 0.60056 is ``1 / (2 * sqrt(ln 2))``. 
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Points at which to evaluate the function
+    *params : float
+        A series of three values per Gaussian in the order 
+        ``amp_1, ctr_1, fwhm_1, amp_2, ctr_2, fwhm_2...``, where
+        amp_i is the height, ctr_i is the centre and
+        fwhm_i is the full width at half maximum.
+
+    Returns
+    -------
+    numpy.ndarray
+        Sum of all Gaussians at ``x``.
+    """
     y = np.zeros_like(x)
     for i in range(0, len(params), 3):
         amp = params[i]
         ctr = params[i+1]
-        FWHM = params[i+2] 
-        wid = FWHM * 0.60056
+        fwhm = params[i+2] 
+        wid = fwhm * 0.60056
         y = y + amp * np.exp( -((x - ctr)/wid)**2)
     return y
 
