@@ -10,7 +10,7 @@ def tof_to_eke (t,s,t0,E0):
     """Convert electron time-of-flight (TOF) to electron kinetic energy (eKE).
     
     Parameters
-    --------
+    ----------
     t : numpy.ndarray
         Array of TOF values to convert.
     s : float
@@ -23,7 +23,7 @@ def tof_to_eke (t,s,t0,E0):
         interaction region and the detector).
 
     Returns
-    ------
+    -------
     scalar or numpy.ndarray
         eKE value of `t`.
     """
@@ -37,7 +37,7 @@ def instrument_function(x,N0,l):
 
     
     Parameters
-    -------------
+    ----------
     x : numpy.ndarray
         Array of eKEs.
     N0 : float
@@ -46,7 +46,7 @@ def instrument_function(x,N0,l):
         decay constant.
 
     Returns
-    -----------
+    -------
     scalar or numpy.ndarray
         Collection efficiency of spectrometer at ``x``.
 
@@ -59,14 +59,14 @@ def pos_to_time(positions, pos0):
     to time delay (in ps). Includes the double pass on the delay stage.
     
     Parameters
-    ------------
+    ----------
     positions : numpy.ndarray
         Array of delay stage positions in mm.
     pos0 : float
         Position of time zero in mm.
 
     Returns
-    -----------
+    -------
     scalar or numpy.ndarray
         Time delay of ``positions``.
     """
@@ -83,7 +83,7 @@ def delaystring_to_float(delay_string):
         String of the form "XXpYYYY".
 
     Returns
-    -------------
+    -------
     float
         Float representation of ``delay_string``.
     """
