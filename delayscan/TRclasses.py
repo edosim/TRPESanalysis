@@ -7,10 +7,10 @@ import scipy
 from .conversions import (
     tof_to_eke,
     pos_to_time,
-    delaystrings_to_float
+    delaystrings_to_float,
+    instrument_function
 )
 
-from .calibrations import instrument_function
 
 
 class DelayScan:

@@ -10,6 +10,11 @@ def tof_to_eke (t,s,t0,E0):
     """Convert data from TOF to eKE"""
     return (0.5* MASS_ELECTRON/(LIGHTSPEED**2)) * (s/(t-t0))**2 - E0
 
+def instrument_function(x,N0,l):
+    """Models reduced collection efficiency of electrons
+    at eKE ~ 0 eV"""
+    return N0*np.exp((-x)/l)+1
+
 
 def pos_to_time(delays, pos0):
     """Convert delays from mm to ps"""
