@@ -190,3 +190,6 @@ data/out
 
 #retrieval bases
 bases/basisSets_pCE_2026.hdf5
+
+#virtual documents
+.virtual_documents/
