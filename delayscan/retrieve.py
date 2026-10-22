@@ -96,8 +96,7 @@ class JetFitFunc():
         self.min_eKE = min_eKE #minimum eKE to fit to
 
     def f(self, x, *params):
-        """
-        Return sum of distorted Gaussians evaluated at x of the form.
+        """Evaluate sum of distorted Gaussians evaluated at `x`.
 
         Each true spectrum is a Gaussian (``G_i``)::
 
