@@ -1,6 +1,6 @@
 # TRPESanalysis
 
-A Python toolkit for processing and analysing liquid-microjet ultraviolet (UV) time-resolved photoelectron spectroscopy (TRPES) data recorded at the Ultrafast Laser Facility, University College London.
+A Python toolkit for processing and analysing liquid-microjet ultraviolet time-resolved photoelectron spectroscopy (TRPES) data recorded at the Ultrafast Laser Facility, University College London.
 
 It takes raw time-of-flight (TOF) photoelectron spectra and produces energy-calibrated, background-subtracted pump-probe sets of photoelectron spectra. It then fits kinetic models and corrects for inelastic electron scattering in the liquid.
 
