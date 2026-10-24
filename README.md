@@ -73,13 +73,12 @@ THe basis sets for spectral retrieval (`basisSets_pCE_2026.hdf5`) go in `bases/`
 ## Output files
  
  ```
-| File | Contents |
-|---|---|
-| `ExperimentalData.csv`         # Summed, background-subtracted spectra (eKE × delay as first row and first column) 
-| `RebinnedExperimentalData.csv` # Same, rebinned along eKE
-| `SubtractedSpectra.csv`        # Rebinned spectra with delays shifted by fitted time zero
-| `LJscatterGridData.csv`        # Spectra rebinned onto the eKE grid used required by `basis`
-| `RetrievedData.csv`            # Spectra retrieved at each delay
+File # Contents 
+ `ExperimentalData.csv`         # Summed, background-subtracted spectra (eKE × delay as first row and first column) 
+ `RebinnedExperimentalData.csv` # Same, rebinned along eKE
+ `SubtractedSpectra.csv`        # Rebinned spectra with delays shifted by fitted time zero
+ `LJscatterGridData.csv`        # Spectra rebinned onto the eKE grid used required by `basis`
+ `RetrievedData.csv`            # Spectra retrieved at each delay
 ```
 
 
