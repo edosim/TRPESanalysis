@@ -24,8 +24,8 @@ It takes raw time-of-flight (TOF) photoelectron spectra and produces energy-cali
 ## Repository structure
 ```
 TRPESanalysis/
-├── delayscan/              # Core package
-│   ├── TRclasses.py        # DelayScan and DelayScanSet: loading, conversions and corrections, subtraction, aggregation
+├── trpes/              # Core package
+│   ├── delayscan.py        # DelayScan and DelayScanSet: loading, conversions and corrections, subtraction, aggregation
 │   ├── conversions.py      # TOF to eKE, stage position to delay, instrument function
 │   ├── kineticmodels.py    # EAS, DAS and retrieved EAS global kinetic models
 │   └── retrieve.py         # Scattering-basis retrieval (JetFitFunc), rebinning, Gaussian functions
